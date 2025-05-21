@@ -1,0 +1,85 @@
+
+/* Custom CSS for Urban Climate Risk Predictor */
+
+/* Feature icons */
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Risk badges */
+.risk-badge {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    font-weight: bold;
+    border-radius: 2rem;
+    margin-top: 0.5rem;
+}
+
+.risk-high {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.risk-medium {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.risk-low {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+/* Progress bars */
+.progress-bar-high {
+    background-color: #dc3545;
+}
+
+.progress-bar-medium {
+    background-color: #ffc107;
+}
+
+.progress-bar-low {
+    background-color: #198754;
+}
+
+/* Social icons */
+.social-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    color: #0d6efd;
+    transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+/* Dashboard cards icon box */
+.icon-box {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+/* Hero section */
+.hero-section {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+}
+
+/* Custom styling for forms */
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}

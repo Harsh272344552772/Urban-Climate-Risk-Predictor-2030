@@ -1,0 +1,281 @@
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Urban Climate Risk Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Welcome, {{ current_user.name }}</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Total Predictions</h6>
+                            <h2 class="mb-0">{{ predictions|length }}</h2>
+                        </div>
+                        <div class="icon-box">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Average Risk</h6>
+                            <h2 class="mb-0">
+                                {% if predictions %}
+                                    {{ (predictions|sum(attribute='risk_score') / predictions|length)|round(1) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </h2>
+                        </div>
+                        <div class="icon-box">
+                            <i class="fas fa-percentage fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title">Last Prediction</h6>
+                            <h2 class="mb-0">
+                                {% if predictions %}
+                                    {{ predictions[0].date.strftime('%d %b') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h2>
+                        </div>
+                        <div class="icon-box">
+                            <i class="fas fa-calendar-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Risk Analysis</h2>
+                </div>
+                <div class="card-body">
+                    <canvas id="riskChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Risk Distribution</h2>
+                </div>
+                <div class="card-body">
+                    <canvas id="riskDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">Your Predictions</h2>
+        </div>
+        <div class="card-body">
+            {% if predictions %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>City</th>
+                                <th>Population</th>
+                                <th>Temp. Increase</th>
+                                <th>Urban Density</th>
+                                <th>Infrastructure</th>
+                                <th>Risk Level</th>
+                                <th>Risk Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prediction in predictions %}
+                                <tr>
+                                    <td>{{ prediction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ prediction.city }}</td>
+                                    <td>{{ prediction.population }}</td>
+                                    <td>{{ prediction.temperature_increase }}°C</td>
+                                    <td>{{ prediction.urban_density|capitalize }}</td>
+                                    <td>{{ prediction.infrastructure|capitalize }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ 
+                                            'danger' if prediction.risk_level == 'high' else 
+                                            'warning' if prediction.risk_level == 'medium' else 'success' 
+                                        }}">
+                                            {{ prediction.risk_level|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>{{ prediction.risk_score }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-0">No predictions found. <a href="{{ url_for('predict') }}">Make your first prediction</a>.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if current_user.is_admin and contacts %}
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Contact Messages</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in contacts %}
+                                <tr>
+                                    <td>{{ contact.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ contact.name }}</td>
+                                    <td><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></td>
+                                    <td>{{ contact.message|truncate(50) }}</td>
+                                    <td>
+                                        <span class="badge rounded-pill bg-{{ 
+                                            'success' if contact.status == 'responded' else 
+                                            'danger' if contact.status == 'pending' else 'secondary' 
+                                        }}">
+                                            {{ contact.status|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">View</button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Risk Analysis Chart
+    const riskCtx = document.getElementById('riskChart');
+    if (riskCtx) {
+        const predictions = {{ predictions|map(attribute='risk_score')|list|tojson }};
+        const dates = {{ predictions|map(attribute='date')|map('strftime', '%Y-%m-%d')|list|tojson }};
+        const cities = {{ predictions|map(attribute='city')|list|tojson }};
+        
+        new Chart(riskCtx, {
+            type: 'line',
+            data: {
+                labels: dates.reverse(),
+                datasets: [{
+                    label: 'Risk Score (%)',
+                    data: predictions.reverse(),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return cities[context[0].dataIndex] + ' - ' + context[0].label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Risk Score (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Risk Distribution Chart
+    const distributionCtx = document.getElementById('riskDistributionChart');
+    if (distributionCtx) {
+        const predictions = {{ predictions|map(attribute='risk_level')|list|tojson }};
+        
+        // Count risk levels
+        const counts = {
+            'low': predictions.filter(level => level === 'low').length,
+            'medium': predictions.filter(level => level === 'medium').length,
+            'high': predictions.filter(level => level === 'high').length
+        };
+        
+        new Chart(distributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+                datasets: [{
+                    data: [counts.low, counts.medium, counts.high],
+                    backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

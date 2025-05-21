@@ -1,0 +1,343 @@
+{% extends "base.html" %} {% block title %}Predict Climate Risk{% endblock %} {%
+block head %}
+<style>
+  .risk-chart {
+    width: 100%;
+    height: 400px;
+    margin-top: 20px;
+  }
+  .progress-bar-high {
+    background-color: #dc3545;
+  }
+  .progress-bar-medium {
+    background-color: #ffc107;
+  }
+  .progress-bar-low {
+    background-color: #198754;
+  }
+  .risk-badge {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    font-weight: bold;
+    border-radius: 2rem;
+    margin-top: 0.5rem;
+  }
+  .risk-high {
+    background-color: #f8d7da;
+    color: #842029;
+  }
+  .risk-medium {
+    background-color: #fff3cd;
+    color: #664d03;
+  }
+  .risk-low {
+    background-color: #d1e7dd;
+    color: #0f5132;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container py-5">
+  <h1 class="text-center mb-5">Predict Your Urban Climate Risk</h1>
+
+  <div class="row">
+    <!-- Prediction Form -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Prediction Form</h2>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              {{ form.city.label(class="form-label") }} {% if form.city.errors
+              %} {{ form.city(class="form-control is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.city.errors %} {{ error }} {% endfor %}
+              </div>
+              {% else %} {{ form.city(class="form-control") }} {% endif %}
+            </div>
+
+            <div class="mb-3">
+              {{ form.population.label(class="form-label") }} {% if
+              form.population.errors %} {{ form.population(class="form-control
+              is-invalid", type="number") }}
+              <div class="invalid-feedback">
+                {% for error in form.population.errors %} {{ error }} {% endfor
+                %}
+              </div>
+              {% else %} {{ form.population(class="form-control", type="number")
+              }} {% endif %}
+            </div>
+
+            <div class="mb-3">
+              {{ form.temperature_increase.label(class="form-label") }}
+              <div class="d-flex align-items-center">
+                <input
+                  type="range"
+                  class="form-range flex-grow-1 me-2"
+                  min="0.1"
+                  max="5.0"
+                  step="0.1"
+                  id="temp-slider"
+                  value="{{ form.temperature_increase.data or 1.5 }}"
+                />
+                <span id="temp-value"
+                  >{{ form.temperature_increase.data or 1.5 }}°C</span
+                >
+              </div>
+              {{ form.temperature_increase(class="d-none", id="temp-input") }}
+              {% if form.temperature_increase.errors %}
+              <div class="text-danger">
+                {% for error in form.temperature_increase.errors %} {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              {{ form.urban_density.label(class="form-label") }} {% if
+              form.urban_density.errors %} {{
+              form.urban_density(class="form-select is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.urban_density.errors %} {{ error }} {%
+                endfor %}
+              </div>
+              {% else %} {{ form.urban_density(class="form-select") }} {% endif
+              %}
+            </div>
+
+            <div class="mb-3">
+              {{ form.infrastructure.label(class="form-label") }} {% if
+              form.infrastructure.errors %} {{
+              form.infrastructure(class="form-select is-invalid") }}
+              <div class="invalid-feedback">
+                {% for error in form.infrastructure.errors %} {{ error }} {%
+                endfor %}
+              </div>
+              {% else %} {{ form.infrastructure(class="form-select") }} {% endif
+              %}
+            </div>
+
+            <div class="d-grid">{{ form.submit(class="btn btn-primary") }}</div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Risk Assessment Results</h2>
+        </div>
+        <div class="card-body">
+          {% if result %}
+          <div class="result-container">
+            <div class="text-center mb-4">
+              <h3>{{ result['city'] }}</h3>
+              <div class="risk-badge risk-{{ result['risk_level'] }}">
+                {{ result['risk_level']|capitalize }} Risk
+              </div>
+              <div class="risk-score-container mt-3">
+                <div class="progress" style="height: 25px">
+                  <div
+                    class="progress-bar progress-bar-{{ result['risk_level'] }}"
+                    role="progressbar"
+                    style="width: {{ result['risk_score'] }}%;"
+                    aria-valuenow="{{ result['risk_score'] }}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    {{ result['risk_score'] }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-4">
+                <h4 class="h6">Risk Factors:</h4>
+                <ul class="list-group">
+                  {% for factor in result['risk_factors'] %}
+                  <li class="list-group-item">{{ factor }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div class="col-md-6 mb-4">
+                <h4 class="h6">Recommendations:</h4>
+                <ul class="list-group">
+                  {% for rec in result['recommendations'] %}
+                  <li class="list-group-item">{{ rec }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 mt-3">
+              {% if current_user.is_authenticated %}
+              <p class="text-success text-center">
+                <i class="fas fa-check-circle"></i> This prediction has been
+                saved to your account.
+              </p>
+              {% else %}
+              <a href="{{ url_for('login') }}" class="btn btn-outline-primary">
+                Login to Save Prediction
+              </a>
+              {% endif %}
+              <a
+                href="{{ url_for('download_report', city=result['city']) }}"
+                class="btn btn-success"
+              >
+                <i class="fas fa-download me-2"></i> Download Report (CSV)
+              </a>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <div class="mb-4">
+              <i class="fas fa-city fa-4x text-muted"></i>
+            </div>
+            <h3 class="h4 mb-3">Risk Assessment Results</h3>
+            <p class="text-muted mb-4">
+              Fill out the form to generate your urban climate risk prediction.
+            </p>
+            <p class="text-muted small">
+              Our model analyzes urban factors to predict climate risks through
+              2030.
+            </p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if result %}
+  <!-- Climate Projection Visualizations -->
+  <div class="row mt-5">
+    <div class="col-12">
+      <h2 class="mb-4">Climate Projections for {{ result.city }}</h2>
+    </div>
+
+    {% if result.plots %}
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Temperature Projection (2023-2030)</h5>
+        </div>
+        <div class="card-body">
+          <img
+            src="data:image/png;base64,{{ result.plots.temperature }}"
+            class="img-fluid"
+            alt="Temperature Projection"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Rainfall Projection (2023-2030)</h5>
+        </div>
+        <div class="card-body">
+          <img
+            src="data:image/png;base64,{{ result.plots.rainfall }}"
+            class="img-fluid"
+            alt="Rainfall Projection"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Climate Risk Projection (2023-2030)</h5>
+        </div>
+        <div class="card-body">
+          <img
+            src="data:image/png;base64,{{ result.plots.flood_risk }}"
+            class="img-fluid"
+            alt="Climate Risk Projection"
+          />
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12 mb-4">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i> Detailed projection graphs are
+        being generated. Please try again.
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Climate Risk Analysis Report</h5>
+        </div>
+        <div class="card-body">
+          <h5 class="mb-3">Risk Analysis for {{ result.city }}</h5>
+          <p>
+            Based on our climate risk prediction model, {{ result.city }} is
+            projected to face <strong>{{ result.risk_level }}</strong> climate
+            risk levels through 2030, with a risk score of
+            <strong>{{ result.risk_score }}%</strong>.
+          </p>
+
+          <h6 class="mt-4">Key Risk Factors:</h6>
+          <ul>
+            {% for factor in result.risk_factors %}
+            <li>{{ factor }}</li>
+            {% endfor %}
+          </ul>
+
+          <h6 class="mt-4">Recommended Adaptation Strategies:</h6>
+          <ol>
+            {% for rec in result.recommendations %}
+            <li>{{ rec }}</li>
+            {% endfor %}
+          </ol>
+
+          <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle me-2"></i> This analysis was generated
+            on {{ result.timestamp|default(result.date) }}. For more detailed
+            information and customized adaptation strategies, please download
+            the complete report.
+          </div>
+        </div>
+        <div class="card-footer">
+          <a
+            href="{{ url_for('download_report', city=result.city) }}"
+            class="btn btn-primary"
+          >
+            <i class="fas fa-file-csv me-2"></i> Download Full CSV Report
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Handle temperature slider
+    const tempSlider = document.getElementById("temp-slider");
+    const tempValue = document.getElementById("temp-value");
+    const tempInput = document.getElementById("temp-input");
+
+    if (tempSlider && tempValue && tempInput) {
+      tempSlider.addEventListener("input", function () {
+        const value = parseFloat(tempSlider.value).toFixed(1);
+        tempValue.textContent = value + "°C";
+        tempInput.value = value;
+      });
+    }
+  });
+</script>
+{% endblock %}
